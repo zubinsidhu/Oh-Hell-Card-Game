@@ -1,0 +1,26 @@
+{
+  "name": "oh-hell-card-game",
+  "version": "1.0.0",
+  "description": "A fully-featured online multiplayer implementation of **Oh Hell** (also known as Blob, Blackout, Nomination Whist, and many other names), built with Node.js, Socket.IO, and vanilla JavaScript.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zubinsidhu/Oh-Hell-Card-Game.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zubinsidhu/Oh-Hell-Card-Game/issues"
+  },
+  "homepage": "https://github.com/zubinsidhu/Oh-Hell-Card-Game#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  }
+}
