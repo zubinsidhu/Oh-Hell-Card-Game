@@ -589,12 +589,17 @@ body {
     <span>💬 Chat</span>
     <div class="unread-dot" id="unread-dot"></div>
   </div>
-  <div class="quick-sayings" id="quick-sayings"></div>
-  <div class="chat-messages" id="chat-messages"></div>
-  <div class="chat-input-row">
-    <input id="chat-input" type="text" placeholder="Message…" maxlength="120"
-      onkeydown="if(event.key==='Enter')sendChat()"/>
-    <button onclick="sendChat()">Send</button>
+  <div class="chat-tab-bar">
+    <div class="chat-tab active" id="tab-chat" onclick="switchChatTab('chat')">💬 Chat</div>
+    <div class="chat-tab" id="tab-sayings" onclick="switchChatTab('sayings')">⚡ Quick</div>
+  </div>
+  <div id="chat-active-panel" class="chat-panel-chat">
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-row">
+      <input id="chat-input" type="text" placeholder="Message…" maxlength="120" onkeydown="if(event.key==='Enter')sendChat()"/>
+      <button onclick="sendChat()">Send</button>
+    </div>
+    <div class="quick-sayings-panel" id="quick-sayings"></div>
   </div>
 </div>
 
