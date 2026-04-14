@@ -352,28 +352,42 @@ body {
   background: rgba(0,0,0,.35); font-size: .82rem;
   color: rgba(245,240,232,.7); border-top: 1px solid rgba(201,168,76,.1);
   flex-shrink: 0;
+  /* Enough bottom padding so it clears the chat tab on mobile */
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  margin-bottom: 36px; /* height of chat toggle tab */
+}
+@media (min-width: 481px) {
+  .status-bar { margin-bottom: 0; }
 }
 .status-bar .highlight { color: var(--gold); font-weight: 600; }
 
 /* Scoreboard */
 .scoreboard {
   position: fixed; top: 0; right: 0;
-  width: min(240px, 88vw); height: 100%;
+  width: min(320px, 96vw); height: 100%;
   background: rgba(8,22,14,.97);
   border-left: 1px solid rgba(201,168,76,.2);
-  padding: 14px; transform: translateX(100%);
+  padding: 14px 10px; transform: translateX(100%);
   transition: transform .3s ease; z-index: 100; overflow-y: auto;
 }
 .scoreboard.open { transform: translateX(0); }
-.scoreboard h3 { font-family: 'Playfair Display', serif; color: var(--gold); margin-bottom: 12px; font-size: 1rem; }
-.score-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.scoreboard h3 { font-family: 'Playfair Display', serif; color: var(--gold); margin-bottom: 4px; font-size: 1rem; }
+.scoreboard-subtitle { font-size: .7rem; color: rgba(245,240,232,.35); margin-bottom: 10px; }
+.score-table-wrap { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 80px); }
+.score-table { border-collapse: collapse; font-size: .78rem; min-width: 100%; }
 .score-table th {
-  color: rgba(245,240,232,.4); font-size: .65rem; text-transform: uppercase;
-  letter-spacing: 1px; text-align: left; padding: 5px 3px;
-  border-bottom: 1px solid rgba(201,168,76,.15);
+  color: rgba(245,240,232,.5); font-size: .62rem; text-transform: uppercase;
+  letter-spacing: .5px; text-align: center; padding: 5px 4px;
+  border-bottom: 1px solid rgba(201,168,76,.2);
+  white-space: nowrap; position: sticky; top: 0;
+  background: rgba(8,22,14,.97);
 }
-.score-table td { padding: 7px 3px; border-bottom: 1px solid rgba(255,255,255,.05); }
-.score-table .leader td { color: var(--gold); }
+.score-table th:first-child { text-align: left; position: sticky; left: 0; z-index: 2; background: rgba(8,22,14,.97); }
+.score-table td { padding: 5px 4px; border-bottom: 1px solid rgba(255,255,255,.04); text-align: center; }
+.score-table td:first-child { text-align: left; position: sticky; left: 0; background: rgba(8,22,14,.97); white-space: nowrap; font-size: .72rem; }
+.score-table tr.totals-row td { border-top: 1px solid rgba(201,168,76,.25); color: var(--gold); font-weight: 700; padding-top: 7px; }
+.score-table td.pts-pos { color: #2ecc71; }
+.score-table td.pts-low { color: rgba(245,240,232,.4); }
 .score-toggle {
   position: fixed; top: 52px; right: 10px;
   background: rgba(201,168,76,.15); border: 1px solid rgba(201,168,76,.3);
@@ -425,12 +439,22 @@ body {
 /* Chat */
 .chat-area {
   position: fixed; bottom: 0; left: 0;
-  width: min(260px, 88vw);
-  background: rgba(8,22,14,.92); border: 1px solid rgba(201,168,76,.15);
+  width: min(280px, 100vw);
+  background: rgba(8,22,14,.95); border: 1px solid rgba(201,168,76,.15);
   border-radius: 0 10px 0 0; z-index: 50;
 }
+.chat-tab-bar {
+  display: none; border-bottom: 1px solid rgba(201,168,76,.15);
+}
+.chat-area.open .chat-tab-bar { display: flex; }
+.chat-tab {
+  flex: 1; padding: 6px; text-align: center; font-size: .72rem;
+  color: rgba(245,240,232,.45); cursor: pointer; transition: all .15s;
+  border-bottom: 2px solid transparent; user-select: none;
+}
+.chat-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
 .chat-toggle {
-  padding: 7px 12px; cursor: pointer;
+  padding: 8px 12px; cursor: pointer;
   display: flex; align-items: center; justify-content: space-between;
   font-size: .78rem; color: rgba(245,240,232,.5);
   border-bottom: 1px solid rgba(201,168,76,.1);
@@ -439,12 +463,12 @@ body {
 .unread-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); display: none; }
 .unread-dot.show { display: block; }
 .chat-messages { max-height: 140px; overflow-y: auto; padding: 7px 9px; display: none; }
-.chat-area.open .chat-messages { display: block; }
+.chat-area.open .chat-panel-chat .chat-messages { display: block; }
 .chat-msg { font-size: .78rem; margin-bottom: 4px; line-height: 1.3; }
 .chat-msg .chat-name { color: var(--gold-lite); font-weight: 600; }
 .chat-msg .chat-text { color: rgba(245,240,232,.8); }
 .chat-input-row { display: none; padding: 5px 7px; gap: 5px; border-top: 1px solid rgba(201,168,76,.1); }
-.chat-area.open .chat-input-row { display: flex; }
+.chat-area.open .chat-panel-chat .chat-input-row { display: flex; }
 .chat-input-row input {
   flex: 1; background: rgba(255,255,255,.07);
   border: 1px solid rgba(201,168,76,.2); border-radius: 6px;
@@ -456,20 +480,21 @@ body {
   border-radius: 6px; color: var(--gold); font-size: .75rem; padding: 5px 9px; cursor: pointer;
 }
 
-/* Quick sayings */
-.quick-sayings {
-  display: none; flex-wrap: wrap; gap: 4px; padding: 6px 8px;
-  border-bottom: 1px solid rgba(201,168,76,.1);
-  max-height: 90px; overflow-y: auto;
+/* Quick sayings panel */
+.quick-sayings-panel {
+  display: none;
+  flex-wrap: wrap; gap: 5px; padding: 8px;
+  max-height: 160px; overflow-y: auto;
 }
-.chat-area.open .quick-sayings { display: flex; }
+.chat-area.open .chat-panel-sayings .quick-sayings-panel { display: flex; }
 .saying-btn {
-  font-size: .7rem; background: rgba(201,168,76,.1);
+  font-size: .72rem; background: rgba(201,168,76,.1);
   border: 1px solid rgba(201,168,76,.2); border-radius: 10px;
-  color: rgba(245,240,232,.7); padding: 3px 8px; cursor: pointer;
-  transition: background .15s; white-space: nowrap;
+  color: rgba(245,240,232,.8); padding: 5px 10px; cursor: pointer;
+  transition: background .15s; white-space: normal; text-align: left;
+  width: 100%;
 }
-.saying-btn:hover { background: rgba(201,168,76,.25); color: var(--cream); }
+.saying-btn:hover, .saying-btn:active { background: rgba(201,168,76,.3); color: var(--cream); }
 
 /* Animations */
 @keyframes deal-in { from { transform: translateY(-20px) scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -494,7 +519,8 @@ body {
   .opp-name { font-size: .78rem; }
   .chat-area { width: 100%; border-radius: 0; }
   .chat-messages { max-height: 110px; }
-  .quick-sayings { max-height: 70px; }
+  .quick-sayings-panel { max-height: 120px; }
+  .scoreboard { width: min(300px, 96vw); }
 }
 </style>
 </head>
@@ -577,10 +603,10 @@ body {
 <button class="score-toggle" id="score-toggle-btn" onclick="toggleScoreboard()">📊 Scores</button>
 <div class="scoreboard" id="scoreboard">
   <h3>Scoreboard</h3>
-  <table class="score-table">
-    <thead><tr><th>Player</th><th>Score</th><th>Bid</th><th>Won</th></tr></thead>
-    <tbody id="score-tbody"></tbody>
-  </table>
+  <div class="scoreboard-subtitle">Points per round (scroll →)</div>
+  <div class="score-table-wrap">
+    <table class="score-table" id="score-table"></table>
+  </div>
 </div>
 
 <!-- Chat -->
@@ -591,12 +617,13 @@ body {
   </div>
   <div class="chat-tab-bar">
     <div class="chat-tab active" id="tab-chat" onclick="switchChatTab('chat')">💬 Chat</div>
-    <div class="chat-tab" id="tab-sayings" onclick="switchChatTab('sayings')">⚡ Quick</div>
+    <div class="chat-tab" id="tab-sayings" onclick="switchChatTab('sayings')">⚡ Quick Sayings</div>
   </div>
   <div id="chat-active-panel" class="chat-panel-chat">
     <div class="chat-messages" id="chat-messages"></div>
     <div class="chat-input-row">
-      <input id="chat-input" type="text" placeholder="Message…" maxlength="120" onkeydown="if(event.key==='Enter')sendChat()"/>
+      <input id="chat-input" type="text" placeholder="Message…" maxlength="120"
+        onkeydown="if(event.key==='Enter')sendChat()"/>
       <button onclick="sendChat()">Send</button>
     </div>
     <div class="quick-sayings-panel" id="quick-sayings"></div>
@@ -681,7 +708,6 @@ function initSocket() {
   });
 
   socket.on('gameState', state => {
-    const wasTrickEnd = prevPhase === 'trickEnd' && state.phase !== 'trickEnd';
     const wasRoundEnd = (prevPhase === 'playing' || prevPhase === 'trickEnd') && state.phase === 'roundEnd';
     const wasGameEnd  = state.phase === 'gameEnd' && prevPhase !== 'gameEnd';
     prevPhase = state.phase;
@@ -691,6 +717,7 @@ function initSocket() {
     renderGame(state);
 
     if (wasRoundEnd) showRoundEnd(state);
+    else if (state.phase === 'roundEnd') updateReadyCount(state); // live ready count sync
     if (wasGameEnd)  showGameEnd(state);
   });
 
@@ -698,13 +725,12 @@ function initSocket() {
     startCountdown(seconds);
   });
 
-  socket.on('chat', ({ name, message }) => appendChat(name, message));
-  socket.on('playerDisconnected', ({ playerId }) => {
-    if (gameState) {
-      const p = gameState.players?.find(x => x.id === playerId);
-      if (p) appendChat('Game', `${p.name} disconnected — bot filling in. They can rejoin with the same name.`);
-    }
+  socket.on('roundStarted', () => {
+    document.getElementById('overlay').style.display = 'none';
   });
+
+  socket.on('chat', ({ name, message }) => appendChat(name, message));
+  socket.on('playerDisconnected', () => { /* handled via chat message from server */ });
 }
 
 // ── Emoji picker ─────────────────────────────────────────────────────────────
@@ -735,6 +761,15 @@ function buildQuickSayings() {
 
 function sendQuickSaying(s) {
   socket.emit('chat', { message: s });
+  // Switch back to chat tab so they can see their message land
+  switchChatTab('chat');
+}
+
+function switchChatTab(tab) {
+  const panel = document.getElementById('chat-active-panel');
+  panel.className = tab === 'sayings' ? 'chat-panel-sayings' : 'chat-panel-chat';
+  document.getElementById('tab-chat').classList.toggle('active', tab === 'chat');
+  document.getElementById('tab-sayings').classList.toggle('active', tab === 'sayings');
 }
 
 // ── Lobby steps ───────────────────────────────────────────────────────────────
@@ -995,15 +1030,35 @@ function renderStatus(state) {
 }
 
 function renderScoreboard(state) {
-  const tbody = document.getElementById('score-tbody');
-  const sorted = [...state.players].sort((a, b) => (state.scores[b.id] || 0) - (state.scores[a.id] || 0));
-  tbody.innerHTML = sorted.map((p, i) => `
-    <tr class="${i === 0 ? 'leader' : ''}">
-      <td>${p.emoji || ''} ${esc(p.name)}${p.id === myId ? ' (you)' : ''}</td>
-      <td>${state.scores[p.id] ?? 0}</td>
-      <td>${state.bids[p.id] !== null && state.bids[p.id] !== undefined ? state.bids[p.id] : '—'}</td>
-      <td>${state.tricks[p.id] || 0}</td>
-    </tr>`).join('');
+  const table = document.getElementById('score-table');
+  const players = state.players;
+  const rounds = state.roundScores || [];
+  const numRounds = rounds.length;
+
+  // Header: Player name | R1 | R2 | … | Total
+  let thead = '<thead><tr><th>Player</th>';
+  for (let r = 0; r < numRounds; r++) thead += `<th>R${r + 1}</th>`;
+  thead += '<th>Total</th></tr></thead>';
+
+  // One row per player
+  let tbody = '<tbody>';
+  players.forEach(p => {
+    const isMe = p.id === myId;
+    tbody += `<tr>`;
+    tbody += `<td>${p.emoji || ''} ${esc(p.name)}${isMe ? ' ★' : ''}</td>`;
+    let cumul = 0;
+    for (let r = 0; r < numRounds; r++) {
+      const pts = rounds[r]?.[p.id] ?? 0;
+      cumul += pts;
+      const cls = pts >= 10 ? 'pts-pos' : pts === 0 ? 'pts-low' : '';
+      tbody += `<td class="${cls}">+${pts}</td>`;
+    }
+    tbody += `<td class="pts-pos">${state.scores[p.id] ?? 0}</td>`;
+    tbody += `</tr>`;
+  });
+  tbody += '</tbody>';
+
+  table.innerHTML = thead + tbody;
 }
 
 // ── Round end overlay ──────────────────────────────────────────────────────
@@ -1020,16 +1075,16 @@ function showRoundEnd(state) {
     const bid = state.bids[p.id] ?? 0;
     const won = state.tricks[p.id] ?? 0;
     let cls, delta;
-    if (bid === won) { cls = 'made'; delta = `+${10 + won}`; }
+    if (bid === won)  { cls = 'made';   delta = `+${10 + won} 🎯`; }
     else if (won > bid) { cls = 'over'; delta = `+${won} (over)`; }
-    else { cls = 'missed'; delta = `+0`; }
+    else               { cls = 'missed'; delta = `+${won}`; }
     return `<li class="${cls}">
       <span>${p.emoji || ''} ${esc(p.name)}: bid ${bid}, got ${won}</span>
       <span class="delta">${delta}</span>
     </li>`;
   }).join('');
 
-  readySec.style.display = state.phase === 'gameEnd' ? 'none' : 'block';
+  readySec.style.display = 'block';
   readyBtn.disabled = false;
   readyBtn.textContent = '✓ Ready for Next Round';
   updateReadyCount(state);
@@ -1054,26 +1109,19 @@ function showGameEnd(state) {
 }
 
 function updateReadyCount(state) {
-  const ready = Object.values(state.readyForNextRound || {}).filter(Boolean).length;
-  const total = state.players.length;
+  const s = state || gameState;
+  if (!s) return;
+  const ready = Object.values(s.readyForNextRound || {}).filter(Boolean).length;
+  const total = s.players.length;
   document.getElementById('ready-count').textContent = `${ready} / ${total} ready`;
 }
 
 function clickReady() {
-  socket.emit('readyNextRound', {}, res => {
-    const btn = document.getElementById('ready-btn');
-    if (res?.ok) {
-      btn.disabled = true;
-      btn.textContent = '✓ Waiting for others…';
-    }
-    if (gameState) updateReadyCount(gameState);
-  });
-  // Close overlay optimistically once we're ready — server will broadcast next round
-  setTimeout(() => {
-    if (gameState?.phase !== 'roundEnd') {
-      document.getElementById('overlay').style.display = 'none';
-    }
-  }, 500);
+  const btn = document.getElementById('ready-btn');
+  btn.disabled = true;
+  btn.textContent = '✓ Waiting for others…';
+  socket.emit('readyNextRound', {});
+  // Overlay will be closed by 'roundStarted' event from server
 }
 
 function startCountdown(seconds) {
