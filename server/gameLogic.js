@@ -26,7 +26,7 @@ function sortHand(hand) {
   return [...hand].sort((a, b) => {
     const suitDiff = SUIT_ORDER[a.suit] - SUIT_ORDER[b.suit];
     if (suitDiff !== 0) return suitDiff;
-    return b.value - a.value; // A→K descending
+    return a.value - b.value; // 2->A ascending
   });
 }
 
