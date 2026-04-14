@@ -1,7 +1,7 @@
 // ── Oh Hell – Core Game Logic ──────────────────────────────────────────────
 
-const SUITS = ['♠', '♥', '♦', '♣'];
-const SUIT_ORDER = { '♠': 0, '♥': 1, '♦': 2, '♣': 3 };
+const SUITS = ['♠', '♥', '♣', '♦'];
+const SUIT_ORDER = { '♠': 0, '♥': 1, '♣': 2, '♦': 3 };
 const RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
 const RANK_VALUE = Object.fromEntries(RANKS.map((r, i) => [r, i]));
 
@@ -26,7 +26,7 @@ function sortHand(hand) {
   return [...hand].sort((a, b) => {
     const suitDiff = SUIT_ORDER[a.suit] - SUIT_ORDER[b.suit];
     if (suitDiff !== 0) return suitDiff;
-    return a.value - b.value;
+    return b.value - a.value; // A→K descending
   });
 }
 
@@ -61,12 +61,10 @@ function resolveTrick(trick, trumpSuit) {
   return winner.playerId;
 }
 
-// Feature #8: no negative scores
-// Exact bid: +10 + tricks. Over: just tricks (no bonus). Under: 0 pts.
+// Scoring: Exact bid = +10 + tricks. Over/Under = just tricks won (no bonus).
 function calcScore(bid, tricks) {
   if (bid === tricks) return 10 + tricks;
-  if (tricks > bid)   return tricks;
-  return 0;
+  return tricks; // over or under: no bonus, but still earn tricks taken
 }
 
 function legalCards(hand, leadSuit) {
@@ -133,6 +131,7 @@ function createGameState(players) {
     bids: {},
     tricks: {},
     scores: {},
+    roundScores: [],   // array of {playerId: delta} per completed round
     currentTrick: [],
     trickLeaderIndex: 0,
     lastTrickWinner: null,
@@ -251,10 +250,14 @@ function resolveTrickEnd(state) {
 }
 
 function endRound(state) {
+  const roundEntry = {};
   state.players.forEach(p => {
     const delta = calcScore(state.bids[p.id], state.tricks[p.id]);
     state.scores[p.id] = (state.scores[p.id] || 0) + delta;
+    roundEntry[p.id] = delta;
   });
+  state.roundScores = state.roundScores || [];
+  state.roundScores.push(roundEntry);
   state.phase = 'roundEnd';
   state.log.push('Round over! Scores updated.');
   state.roundIndex++;
@@ -288,6 +291,7 @@ function publicState(state, forPlayerId) {
     bids: state.bids,
     tricks: state.tricks,
     scores: state.scores,
+    roundScores: state.roundScores || [],
     currentTrick: state.currentTrick,
     lastTrickWinner: state.lastTrickWinner,
     lastTrickCards: state.lastTrickCards,
