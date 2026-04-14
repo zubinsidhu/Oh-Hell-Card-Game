@@ -104,7 +104,6 @@ function scheduleAutoNext(roomCode) {
   const room = rooms[roomCode];
   if (!room?.state || room.state.phase === 'gameEnd') return;
 
-  // Broadcast countdown
   io.to(roomCode).emit('autoNextCountdown', { seconds: 10 });
 
   autoNextTimers[roomCode] = setTimeout(() => {
@@ -112,6 +111,7 @@ function scheduleAutoNext(roomCode) {
     if (!r?.state || r.state.phase !== 'roundEnd') return;
     nextRound(r.state);
     broadcastState(roomCode);
+    io.to(roomCode).emit('roundStarted'); // closes overlay on all clients
     scheduleBotTurn(roomCode);
   }, 10000);
 }
@@ -120,6 +120,20 @@ function cancelAutoNext(roomCode) {
   if (autoNextTimers[roomCode]) {
     clearTimeout(autoNextTimers[roomCode]);
     delete autoNextTimers[roomCode];
+  }
+}
+
+// Feature #7: detect all-bot game and terminate
+function checkAllBots(roomCode) {
+  const room = rooms[roomCode];
+  if (!room?.state) return;
+  const humanConnected = room.state.players.some(p => !p.isBot && room.playerSockets[p.id]);
+  if (!humanConnected) {
+    console.log(`Room ${roomCode}: all players are bots/disconnected — terminating game`);
+    if (botTimers[roomCode]) clearTimeout(botTimers[roomCode]);
+    cancelAutoNext(roomCode);
+    room.state.phase = 'gameEnd';
+    room.state.log.push('Game ended: no human players remaining.');
   }
 }
 
@@ -273,17 +287,18 @@ io.on('connection', (socket) => {
     cb?.(result);
   });
 
-  // Player ready for next round (Feature #10)
+  // Player ready for next round
   socket.on('readyNextRound', (_, cb) => {
     const { roomCode, playerId } = socket.data;
     const room = rooms[roomCode];
     if (!room?.state || room.state.phase !== 'roundEnd') return cb?.({ ok: false });
     const allReady = markReady(room.state, playerId);
-    broadcastState(roomCode);
+    broadcastState(roomCode); // sync ready counts to everyone
     if (allReady) {
       cancelAutoNext(roomCode);
       nextRound(room.state);
       broadcastState(roomCode);
+      io.to(roomCode).emit('roundStarted'); // closes overlay on all clients
       scheduleBotTurn(roomCode);
     }
     cb?.({ ok: true });
@@ -310,10 +325,9 @@ io.on('connection', (socket) => {
         name: 'Game',
         message: `${player.name} disconnected. Bot is filling in. Rejoin with the same name to take back over.`
       });
-      // Schedule bot takeover after short delay to allow quick reconnect
       setTimeout(() => {
         if (!room.playerSockets[playerId]) {
-          if (player) player.isBot = false; // keep isBot false — server handles it via disconnected check
+          checkAllBots(roomCode); // terminate if everyone left
           scheduleBotTurn(roomCode);
         }
       }, 5000);
