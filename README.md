@@ -129,40 +129,13 @@ oh-hell/
 
 ## 🚢 Deployment
 
-### Fly.io
-```bash
-fly launch
-fly deploy
-```
-
 ### Railway
 Push to GitHub, connect repo to Railway, set start command to `node index.js`.
-
-### Heroku
-```bash
-heroku create
-git push heroku main
-```
 
 ### Environment Variables
 | Variable | Default | Description |
 |---|---|---|
 | `PORT` | `3001` | Server port |
-
----
-
-## 🔮 Possible Enhancements
-
-- [ ] Persistent scores across sessions (add a database)
-- [ ] Spectator mode
-- [ ] Romania Whist variant (no-trump rounds)
-- [ ] Fist-of-five simultaneous bidding
-- [ ] Animated card dealing
-- [ ] Sound effects
-- [ ] Mobile app (React Native)
-- [ ] Private lobbies with passwords
-
----
 
 ## 📄 License
 MIT
