@@ -496,7 +496,71 @@ body {
 }
 .saying-btn:hover, .saying-btn:active { background: rgba(201,168,76,.3); color: var(--cream); }
 
-/* Animations */
+/* Scores history popup (end-game) */
+.scores-popup-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.75);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 300; backdrop-filter: blur(4px);
+}
+.scores-popup {
+  background: linear-gradient(160deg, #0f3520, #0a2014);
+  border: 1px solid var(--gold); border-radius: 16px;
+  padding: 20px 18px; width: min(540px, 96vw);
+  max-height: 82vh; display: flex; flex-direction: column;
+  box-shadow: 0 30px 80px rgba(0,0,0,.7);
+  position: relative;
+}
+.scores-popup-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px; flex-shrink: 0;
+}
+.scores-popup-header h3 {
+  font-family: 'Playfair Display', serif;
+  color: var(--gold); font-size: 1.2rem;
+}
+.scores-popup-close {
+  background: rgba(201,168,76,.15); border: 1px solid rgba(201,168,76,.3);
+  color: var(--gold); border-radius: 8px; width: 32px; height: 32px;
+  font-size: 1.1rem; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; transition: background .15s; flex-shrink: 0;
+}
+.scores-popup-close:hover { background: rgba(201,168,76,.3); }
+.scores-popup-table-wrap {
+  overflow-x: auto; overflow-y: auto; flex: 1;
+  /* Custom scrollbar */
+  scrollbar-width: thin; scrollbar-color: rgba(201,168,76,.3) transparent;
+}
+.scores-popup-table-wrap::-webkit-scrollbar { height: 5px; width: 5px; }
+.scores-popup-table-wrap::-webkit-scrollbar-track { background: transparent; }
+.scores-popup-table-wrap::-webkit-scrollbar-thumb { background: rgba(201,168,76,.3); border-radius: 3px; }
+.scores-popup-table {
+  border-collapse: collapse; font-size: .82rem; white-space: nowrap; width: 100%;
+}
+.scores-popup-table th {
+  color: rgba(245,240,232,.5); font-size: .65rem; text-transform: uppercase;
+  letter-spacing: .5px; padding: 6px 8px; border-bottom: 1px solid rgba(201,168,76,.2);
+  text-align: center; position: sticky; top: 0; background: #0f3520;
+}
+.scores-popup-table th:first-child { text-align: left; position: sticky; left: 0; z-index: 2; background: #0f3520; min-width: 90px; }
+.scores-popup-table td { padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,.05); text-align: center; }
+.scores-popup-table td:first-child { text-align: left; position: sticky; left: 0; background: #0a2014; font-size: .78rem; }
+.scores-popup-table tr:nth-child(even) td:first-child { background: #0c2818; }
+.scores-popup-table .totals-row td {
+  border-top: 2px solid rgba(201,168,76,.3); color: var(--gold);
+  font-weight: 700; font-size: .9rem; padding-top: 9px;
+}
+.scores-popup-table .totals-row td:first-child { background: #0f3520; }
+.spt-pos { color: #2ecc71; } .spt-zero { color: rgba(245,240,232,.3); }
+.btn-scores-history {
+  display: block; width: 100%; margin-top: 16px;
+  padding: 11px; border: 1px solid rgba(201,168,76,.4);
+  border-radius: 8px; background: rgba(201,168,76,.1);
+  color: var(--gold); font-family: 'Playfair Display', serif;
+  font-size: 1rem; font-weight: 700; cursor: pointer;
+  transition: background .18s; letter-spacing: .5px;
+}
+.btn-scores-history:hover { background: rgba(201,168,76,.25); }
+
 @keyframes deal-in { from { transform: translateY(-20px) scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes pulse-glow { 0%,100% { box-shadow: 0 0 6px rgba(201,168,76,.25); } 50% { box-shadow: 0 0 18px rgba(201,168,76,.6); } }
 @keyframes pop-in { from { transform: translateX(-50%) scale(.7); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
@@ -761,8 +825,12 @@ function buildQuickSayings() {
 
 function sendQuickSaying(s) {
   socket.emit('chat', { message: s });
-  // Switch back to chat tab so they can see their message land
+  // Show it locally right away (server will echo to everyone else)
+  appendChat(myName || 'You', s, true);
+  // Switch to chat tab so user sees the message land
   switchChatTab('chat');
+  // Make sure chat is open
+  if (!chatOpen) toggleChat();
 }
 
 function switchChatTab(tab) {
@@ -1092,20 +1160,99 @@ function showRoundEnd(state) {
 }
 
 function showGameEnd(state) {
-  const overlay = document.getElementById('overlay');
-  const title   = document.getElementById('overlay-title');
-  const results = document.getElementById('overlay-results');
+  const overlay  = document.getElementById('overlay');
+  const title    = document.getElementById('overlay-title');
+  const results  = document.getElementById('overlay-results');
   const readySec = document.getElementById('ready-section');
 
   const sorted = [...state.players].sort((a, b) => (state.scores[b.id] || 0) - (state.scores[a.id] || 0));
-  title.textContent = `🏆 ${sorted[0].name} Wins!`;
+  title.textContent = `🏆 ${sorted[0].emoji || ''} ${sorted[0].name} Wins!`;
   results.innerHTML = sorted.map((p, i) => `
     <li class="${i === 0 ? 'made' : 'missed'}">
-      <span>${i + 1}. ${p.emoji || ''} ${esc(p.name)}</span>
+      <span>${i + 1}. ${p.emoji || ''} ${esc(p.name)}${p.id === myId ? ' (you)' : ''}</span>
       <span class="delta">${state.scores[p.id] ?? 0} pts</span>
     </li>`).join('');
+
+  // Scores history button
+  const existingBtn = document.getElementById('game-end-scores-btn');
+  if (existingBtn) existingBtn.remove();
+  const btn = document.createElement('button');
+  btn.id = 'game-end-scores-btn';
+  btn.className = 'btn-scores-history';
+  btn.textContent = '📊 View Round-by-Round Scores';
+  btn.onclick = () => openScoresPopup(state);
+  document.querySelector('.overlay-card').appendChild(btn);
+
   readySec.style.display = 'none';
   overlay.style.display = 'flex';
+}
+
+function openScoresPopup(state) {
+  // Remove any existing popup
+  const existing = document.getElementById('scores-popup-overlay');
+  if (existing) existing.remove();
+
+  const players = state.players;
+  const rounds  = state.roundScores || [];
+
+  // Build header row
+  let thead = '<thead><tr><th>Player</th>';
+  for (let r = 0; r < rounds.length; r++) {
+    thead += `<th>R${r + 1}<br><span style="font-size:.55rem;opacity:.5">${state.roundSequence[r]}c</span></th>`;
+  }
+  thead += '<th>Total</th></tr></thead>';
+
+  // Build player rows
+  let tbody = '<tbody>';
+  players.forEach(p => {
+    tbody += `<tr><td>${p.emoji || ''} ${esc(p.name)}${p.id === myId ? ' ★' : ''}</td>`;
+    for (let r = 0; r < rounds.length; r++) {
+      const pts = rounds[r]?.[p.id] ?? 0;
+      const cls = pts >= 10 ? 'spt-pos' : pts === 0 ? 'spt-zero' : '';
+      tbody += `<td class="${cls}">+${pts}</td>`;
+    }
+    tbody += `<td style="color:var(--gold);font-weight:700">${state.scores[p.id] ?? 0}</td>`;
+    tbody += `</tr>`;
+  });
+
+  // Totals row
+  tbody += `<tr class="totals-row"><td>Total</td>`;
+  for (let r = 0; r < rounds.length; r++) {
+    const sum = players.reduce((s, p) => s + (rounds[r]?.[p.id] ?? 0), 0);
+    tbody += `<td>${sum}</td>`;
+  }
+  const grandTotal = players.reduce((s, p) => s + (state.scores[p.id] ?? 0), 0);
+  tbody += `<td>${grandTotal}</td></tr>`;
+  tbody += '</tbody>';
+
+  const popup = document.createElement('div');
+  popup.id = 'scores-popup-overlay';
+  popup.className = 'scores-popup-overlay';
+  popup.innerHTML = `
+    <div class="scores-popup">
+      <div class="scores-popup-header">
+        <h3>📊 Round-by-Round Scores</h3>
+        <button class="scores-popup-close" onclick="closeScoresPopup()">✕</button>
+      </div>
+      <div class="scores-popup-table-wrap">
+        <table class="scores-popup-table">
+          ${thead}${tbody}
+        </table>
+      </div>
+    </div>`;
+
+  document.body.appendChild(popup);
+
+  // Scroll to last column (most recent round) after render
+  requestAnimationFrame(() => {
+    const wrap = popup.querySelector('.scores-popup-table-wrap');
+    if (wrap) wrap.scrollLeft = wrap.scrollWidth;
+  });
+}
+
+function closeScoresPopup() {
+  const popup = document.getElementById('scores-popup-overlay');
+  if (popup) popup.remove();
 }
 
 function updateReadyCount(state) {
@@ -1214,7 +1361,16 @@ function sendChat() {
   input.value = '';
 }
 
-function appendChat(name, message) {
+let lastLocalMsg = null; // used to suppress server echo of quick sayings
+
+function appendChat(name, message, isLocal = false) {
+  // Suppress the server echo of a saying we already showed locally
+  if (!isLocal && lastLocalMsg && lastLocalMsg.name === name && lastLocalMsg.msg === message) {
+    lastLocalMsg = null;
+    return;
+  }
+  if (isLocal) lastLocalMsg = { name, msg: message };
+
   const div = document.getElementById('chat-messages');
   const el = document.createElement('div');
   el.className = 'chat-msg';
