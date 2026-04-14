@@ -1,6 +1,6 @@
 {
   "name": "oh-hell-card-game",
-  "version": "1.0.0",
+  "version": "1.4.0",
   "description": "A fully-featured online multiplayer implementation of **Oh Hell** (also known as Blob, Blackout, Nomination Whist, and many other names), built with Node.js, Socket.IO, and vanilla JavaScript.",
   "main": "index.js",
   "scripts": {
